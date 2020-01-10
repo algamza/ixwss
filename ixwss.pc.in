@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: ixwss
+Description: ix web socket server
+Version: @IXWSS_SDK_VERSION@
+Libs: -L${libdir} -lixwsc.so -lixwss.so 
+Cflags: -I${includedir} 

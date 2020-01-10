@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>                                                                                          
+    <vhost port='9999' ssl='false'>                                                                   
+        <setting>                                                                                 
+            <ws subprotocol='simple'>                                                                  
+                <plugin>/usr/lib/libixplugin_simple.so</plugin>                                                                    
+            </ws>
+            <ws subprotocol='wvss'>                                                                  
+                <plugin>/usr/lib/libixplugin_vis.so</plugin>                                                                    
+            </ws>                                                                               
+        </setting>                                                                                 
+    </vhost>
+    <vhost port='9998' ssl='false'>                                                                   
+        <setting>        
+            <http>
+                <plugin>/usr/lib/libixplugin_simple.so</plugin>
+            </http>                                                                         
+            <ws>                                                                  
+                <plugin>/usr/lib/libixplugin_simple.so</plugin>                                                                    
+            </ws>                                                           
+        </setting>                                                                                 
+    </vhost>                                                                                          
+    <vhost port='9997' ssl='true'>
+        <ssl>                                                                                     
+            <certificate>../ixcert/ixserver.crt</certificate>                                       
+            <rootca>../ixcert/rootca.crt</rootca>                                                        
+            <privatekey>../ixcert/ixserver.key</privatekey>                                                         
+        </ssl>                                                                    
+        <setting>                                                                                 
+            <wss subprotocol='simple'>                                                                  
+                <plugin>/usr/lib/libixplugin_simple.so</plugin>                                                                    
+            </wss>
+            <https>
+                <plugin>/usr/lib/libixplugin_simple.so</plugin>
+            </https>                                                                                 
+        </setting>                                                               
+    </vhost>                                                                                    
+</config>

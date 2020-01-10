@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+        var protocol_name;
+        var websocket;
+        var ip = "";
+        $(document).ready(function(){
+            window.WebSocket = window.WebSocket || window.MozWebSocket;
+            var websocket;
+            var ip = "";
+            $("#connect_btn").click(function(e) {
+                e.preventDefault();
+                var connect_ip = $("#ip_input").val();
+
+                protocol_name = $("#subprotocol_input").val();
+                if ( protocol_name )
+                {
+                    websocket = new WebSocket(connect_ip, protocol_name);
+                }
+                else
+                {
+                    websocket = new WebSocket(connect_ip);
+                }
+
+                protocol_name = null;
+
+                websocket.onopen = function () {
+                    $("#connect_btn").hide();
+                    $("#ip_input").attr("disabled",true);
+                    $("#subprotocol_input").attr("disabled",true);
+                    $('h1').css('color', 'green');
+                };
+
+                websocket.onerror = function () {
+                    $('h1').css('color', 'red');
+                };
+
+                websocket.onmessage = function (message) {
+                    $('div').append($('<p>', { text: message.data }));
+                };
+                websocket.onclose = function (event) {
+                    alert('Onclose called' + event + ", code is : " + event.code + ", reason is : " + event.reason);
+                };
+            });
+
+            $("#send_btn").click(function(e) {
+                e.preventDefault();
+                websocket.send($("#send_input").val());
+                $("#send_input").val('');
+            });
+
+            $("#http_btn_async").click(function(e) {
+                e.preventDefault();
+                var xhttp = new XMLHttpRequest();
+                xhttp.ontimeout = function() {
+                    $('div').append($('<p style="color:red;">', { text: "timeout!!" }));
+                }; 
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        $('div').append($('<p>', { text: xhttp.responseText }));
+                    }
+                };
+                xhttp.open("POST", $("#http_address_input").val(), true);
+                xhttp.setRequestHeader("Content-type", "application/xhtml+xml"); 
+                xhttp.send($("#http_data_input_async").val());
+            });
+
+            $("#http_btn_sync").click(function(e) {
+                e.preventDefault();
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("POST", $("#http_address_input").val(), false);
+                xhttp.setRequestHeader("Content-type", "application/xhtml+xml");
+                xhttp.send($("#http_data_input_sync").val());
+                if (xhttp.status === 200) {
+                    $('div').append($('<p>', { text: xhttp.responseText }));
+                }
+            });
+
+            $("#http_btn_async_get").click(function(e) {
+                e.preventDefault();
+                var xhttp = new XMLHttpRequest();
+                xhttp.ontimeout = function() {
+                    $('div').append($('<p style="color:red;">', { text: "timeout!!" }));
+                }; 
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        $('div').append($('<p>', { text: xhttp.responseText }));
+                    }
+                };
+                xhttp.open("GET", $("#http_address_input_get").val() + '/' + $("#http_data_input_async_get").val(), true);
+                xhttp.send(null);
+            });
+
+            $("#http_btn_sync_get").click(function(e) {
+                e.preventDefault();
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("GET", $("#http_address_input_get").val() + '/' + $("#http_data_input_sync_get").val(), false);
+                xhttp.send(null);
+                if (xhttp.status === 200) {
+                    $('div').append($('<p>', { text: xhttp.responseText }));
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<h1>WebSockets test</h1>
+<form>
+    <p id="div_websocket" style="float:left;margin-right:100px;height:100px;">
+        <b>Websocket(ws, wss)</b>
+        <br>
+        <input id="subprotocol_input" type="text" value="wvss" />
+        sub-protocol
+        <br>
+        <input id="ip_input" type="text" value="ws://192.168.1.9:9999" />
+        <button id="connect_btn">Connect</button>
+        <br>
+        <input id="send_input" type="text" />
+        <button id="send_btn">Send</button>
+        <br>
+    </p>
+    <p id="div_xmlhttp" style="float:left;height:100px;">
+        <b>XMLHttpRequest(POST)</b>
+        <br>
+        <input id="http_address_input" type="text" value="http://192.168.1.9:9999" />
+        <br>
+        <input id="http_data_input_async" type="text" />
+        <button id="http_btn_async">async</button>
+        <br>
+        <input id="http_data_input_sync" type="text" />
+        <button id="http_btn_sync">sync</button>
+    </p>
+    <p id="div_xmlhttp_get" style="float:left;height:100px;">
+        <b>XMLHttpRequest(GET)(http,https)</b>
+        <br>
+        <input id="http_address_input_get" type="text" value="http://192.168.1.9:9999" />
+        <br>
+        <input id="http_data_input_async_get" type="text" />
+        <button id="http_btn_async_get">async</button>
+        <br>
+        <input id="http_data_input_sync_get" type="text" />
+        <button id="http_btn_sync_get">sync</button>
+    </p>
+</form>
+<div style="position:absolute;top:220px;left:10px;"></div>
+</body>
+</html>

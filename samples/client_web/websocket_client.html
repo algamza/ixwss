@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="full_jsons.js"></script>
+    <script type="text/javascript">
+        var config = { timestamp : true, };
+        var websocket;
+        var ip = "";
+        $(document).ready(function(){
+            window.WebSocket = window.WebSocket || window.MozWebSocket;
+            var websocket;
+            var ip = "";
+            var arrayIndex=0;
+            var agingInterval;
+            
+            /* set document size for STB */
+            $('body').css({width:window.innerWidth, height:window.innerHeight});
+            
+            /* set default value on form tag */
+            if ( loadUserData("last_ip") != null )
+            {
+                $("#ip_input").val(loadUserData("last_ip"));
+            }
+            else
+            {
+                $("#ip_input").val("IP:Port");
+            }
+            
+            if ( loadUserData("last_query") != null )
+            {
+                $("#send_input").val(loadUserData("last_query"));
+            }
+            else
+            {
+                $("#send_input").val("");
+            }
+            
+            updateState(websocket);
+            $("#connect_btn").click(function(e) {
+                e.preventDefault();
+                storeUserData("last_ip", $("#ip_input").val());
+                var connect_ip = "ws://" +  $("#ip_input").val();
+                websocket = new WebSocket(connect_ip,"lws-bidirectional-protocol");
+
+                websocket.onopen = function () {
+                    $("#connect_btn").hide();
+                    $("#disconnect_btn").show();
+                    $("#ip_input").attr("disabled",true);
+                    updateState(websocket);
+                    $("#title").css({color:"green"});
+                };
+
+                websocket.onerror = function () {
+                    updateState(websocket);
+                    $("#title").css({color:"red"});
+                };
+
+                websocket.onmessage = function (message) {
+                    printLog(1, "-> "+message.data );
+                    updateState(websocket);
+                };
+
+                websocket.onclose = function() {
+                    $("#connect_btn").show();
+                    $("#disconnect_btn").hide();
+                    $("#ip_input").attr("disabled",false);
+                    updateState(websocket);
+                    if ( $("#title").css("color") != "rgb(255, 0, 0)")
+                        $("#title").css({color:"black"});
+                }
+            });
+
+            $("#send_btn").click(function(e) {
+                e.preventDefault();
+                if ( websocket != undefined && websocket.readyState == 1 ){
+                    if ( $("#send_input").val() != '' ){
+                        storeUserData("last_query", $("#send_input").val());
+                        try {
+                            var c = $.parseJSON($("#send_input").val());
+                        }
+                        catch (err) {
+                            printLog(3, "<- exception "+$("#send_input").val() );
+                        }
+
+                        printLog(2, "<- "+$("#send_input").val());
+                        websocket.send($("#send_input").val());
+                    }else{
+                        printLog(3, "<- buffer is empty" );
+                    }
+                }else{
+                    printLog(3, "<- websocket is not ready" );
+                }
+                    
+
+            });
+
+            $("#aging_start_btn").click(function(e) {
+                e.preventDefault();
+                if ( websocket != undefined && websocket.readyState == 1 ){
+                    arrayIndex=0;
+                    agingInterval = setInterval(sendAgingMessage,2000);
+                    $("#aging_start_btn").hide();
+                    $("#aging_stop_btn").show();
+                    printLog(1, "-> aging test started" );
+                }
+                else
+                {
+                    printLog(1, "-> websocket is not ready" );
+                }
+            });
+            
+            $("#aging_stop_btn").click(function(e) {
+                e.preventDefault();
+                arrayIndex=0;
+                clearInterval(agingInterval);
+                $("#aging_start_btn").show();
+                $("#aging_stop_btn").hide();
+                printLog(1, "-> websocket is stop" );
+            });
+            
+            function sendAgingMessage(){
+                printLog(2, "<-"+AgingArray[arrayIndex]);
+        		{
+        			websocket.send(AgingArray[arrayIndex]);
+            		//websocket readyState
+            		//0 : connecting, 1: open , 2: closing , 3:closed - only 1 enable communication
+            		arrayIndex++;                
+            		if(arrayIndex >= AgingArray.length)
+            		{
+            			clearInterval(agingInterval);
+            		}
+                }
+            }
+        });
+        
+        function loadUserData(key){
+            if (typeof(Storage) !== "undefined") {
+                return localStorage.getItem(key);
+            } else {
+                var name = key + "=";
+                var ca = document.cookie.split(';');
+                for(var i = 0; i < ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }
+        }
+        
+        function storeUserData( key, value ){
+            if (typeof(Storage) !== "undefined") {
+                localStorage.setItem(key, value);
+            } else {
+                var d = new Date();
+                d.setTime(d.getTime() + (exdays*24*60*60*1000));
+                var expires = "expires="+d.toUTCString();
+                document.cookie = key + "=" + value + "; " + expires;
+            }
+        }
+
+        function printLog( level, message ){
+            var local_message;
+            var color_string;
+            if ( config.timestamp == true ) {
+                time = new Date();
+                local_message = "["+ time.toLocaleTimeString() + "]" + message;
+            } else
+                local_message = message;
+                
+            switch(level)
+            {
+                case 0: color_string = "black";break;
+                case 1: color_string = "green";break;
+                case 2: color_string = "blue";break;
+                case 3: color_string = "red";break;
+            }
+            
+            $('#log').prepend($('<p>', {text: local_message}).css({color:color_string}));
+            clearLog();
+        }
+        
+        function clearLog(){
+            var idx, client_rect, bottom = document.body.getBoundingClientRect().bottom;
+            for ( idx = $("#log").children().length - 1; idx => 0 ; idx-- )
+            {
+                client_rect = $("#log").children()[idx].getBoundingClientRect();
+                if ( client_rect.top > bottom )
+                {
+                    $("#log").children()[idx].remove();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        
+        function updateState( websocket ){
+            var state = "WebSocket.readyState : ";
+            var color_string;
+            if ( websocket == undefined ){
+                state += "not ready";
+                color_string="black";
+            }else{
+                switch( websocket.readyState ){
+                    case 0: state += "CONNECTING";color_string="black";break;
+                    case 1: state += "OPEN";color_string="black";break;
+                    case 2: state += "CLOSING";color_string="black";break;
+                    case 3: state += "CLOSED";color_string="black";break;
+                }
+            }
+            $('#state').text(state).css('color', color_string);
+        }
+    </script>
+</head>
+<body>
+<h1 id="title">WebSockets test</h1>
+<form>
+    <div id="connection">
+    <p id="state"> </p>
+    <input id="ip_input" type="text" />ex) 192.168.0.3:4434<br>
+    <button id="connect_btn">Connect</button>
+    <button id="disconnect_btn" style="display: none;">Disconnect</button>
+    </div>
+    <div id="json_data">
+    <input id="send_input" type="text" />
+    <button id="send_btn">Send</button>
+    <button id="aging_start_btn">Aging Start</button>
+    <button id="aging_stop_btn"  style="display: none;">Aging Stop</button>    
+    </div>
+    <div id="log">
+    </div>
+</form>
+<div></div>
+</body>
+</html>
